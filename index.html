@@ -62,14 +62,16 @@
   .prow.sel { background: var(--screen); color: var(--screen-text); }
   .prow.sel .muted { color: var(--screen-muted); }
   .prow.sel button { background: transparent; color: var(--screen-text); border-color: var(--screen-line); }
-  .pname { display: flex; align-items: center; gap: 8px; font-weight: 600; min-width: 0; }
-  .pname span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pname { display: flex; align-items: center; gap: 8px; min-width: 0; }
+  .pname .pn { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
+  .pname b { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pname .sha { font-size: 11px; }
   .pstate { font-size: 13px; text-align: right; white-space: nowrap; }
   .pcommit { min-width: 0; font-size: 13px; }
   .pcommit > div { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .pcommit .pills { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 3px; }
   .prow button { justify-self: end; }
-  .prow.updater .pname { font-weight: 400; }
+  .prow.updater .pname b { font-weight: 400; }
   .screen { background: var(--screen); color: var(--screen-muted); display: flex; flex-direction: column; min-width: 0; }
   .screen-head { display: flex; align-items: center; gap: 8px; padding: 10px 14px 0; font: 12px var(--mono); }
   .screen select { font: 12px var(--mono); background: transparent; color: var(--screen-muted); border: 1px solid var(--screen-line); border-radius: 6px; padding: 1px 4px; }
@@ -177,13 +179,14 @@ function renderProjects(list, au) {
       : p.active === 'active' ? ['', `up ${dur((Date.now() - p.since) / 1000)}`]
       : p.active === 'activating' || p.active === 'reloading' ? ['warn', p.active]
       : ['down', p.sub || p.active];
-    row.querySelector('.pname').innerHTML = `${dot(cls)}<span>${esc(p.name)}</span>`;
+    row.querySelector('.pname').innerHTML = `${dot(cls)}<span class="pn"><b>${esc(p.name)}</b>` +
+      (p.commit ? `<code class="sha muted">${esc(p.commit.hash.slice(0, 7))}</code>` : '') + '</span>';
     row.querySelector('.pstate').innerHTML = esc(text) +
       (p.restarts ? ` <span class="muted" title="automatic restarts after crashing">, ${p.restarts} crashes</span>` : '');
     const behind = p.github && p.commit && p.commit.hash !== p.github.hash;
     const broken = !au.running && p.deployed && p.commit && p.deployed !== p.commit.hash;
     row.querySelector('.pcommit').innerHTML = !p.commit ? '<span class="muted">no git checkout found</span>'
-      : `<div>${commit(p.commit)}</div>` +
+      : `<div>${esc(p.commit.subject)} <span class="muted">${ago(Date.parse(p.commit.date))}</span></div>` +
         (behind ? `<div class="muted">GitHub has ${commit(p.github)}</div>` : '') +
         (behind || broken ? `<div class="pills">${behind ? pill('warn', 'update pending') : ''}${broken ? pill('down', 'update failed') : ''}</div>` : '');
   }
@@ -194,7 +197,7 @@ function renderProjects(list, au) {
     : au.running ? ['warn', 'running']
     : au.lastResult && au.lastResult !== 'success' ? ['down', `failed ${ago(au.lastRun)}`]
     : [au.active === 'active' ? '' : 'off', au.active === 'active' ? `ran ${ago(au.lastRun)}` : au.active];
-  row.querySelector('.pname').innerHTML = `${dot(cls)}<span>Auto-updater</span>`;
+  row.querySelector('.pname').innerHTML = `${dot(cls)}<span class="pn"><b>auto-updater</b></span>`;
   row.querySelector('.pstate').textContent = text;
   row.querySelector('.pcommit').innerHTML = '<span class="muted">Deploys new GitHub commits every minute</span>';
   markSelected();

@@ -36,15 +36,14 @@ Open `http://<pi hostname>.local:8080` from any device on your network. To use a
 
 ```json
 [
-  { "name": "Hearthbeat", "dir": "~/hearthbeat", "service": "hearthbeat" },
-  { "name": "Karen", "dir": ".", "service": "karen" }
+  { "dir": "~/hearthbeat", "service": "hearthbeat" },
+  { "dir": ".", "service": "karen" }
 ]
 ```
 
 | Field | Meaning |
 | --- | --- |
-| `name` | Shown in the project list. |
-| `dir` | The project's git checkout. `~` is your home folder; other relative paths start from this repo, so `"."` is Karen. |
+| `dir` | The project's git checkout, whose folder name is shown in the list. `~` is your home folder; other relative paths start from this repo, so `"."` is Karen. |
 | `service` | The systemd service that runs it. |
 
 Each minute the updater fetches `main` for every project. When there's a new commit, it resets the checkout to match GitHub, runs `npm ci --omit=dev` if there's a `package-lock.json`, and restarts the service. Local edits to tracked files are discarded. Untracked files such as `.env` are kept.
