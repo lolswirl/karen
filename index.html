@@ -10,14 +10,17 @@
   :root {
     --bg: #eef1f8; --card: #e1e7f3; --text: #13244a; --muted: #4f6a5e; --line: #c9d3e8;
     --up: #65852f; --down: #c94040; --warn: #b7800a; --accent: #2b44a5; --bar: #c9d3e8;
-    --on-accent: #fff; --on-pill: #fff;
+    --on-pill: #fff;
+    /* Karen's screen stays dark in both themes, like the monitor it is */
+    --screen: #0b1633; --screen-text: #e3e9f6; --screen-muted: #8ba89a; --screen-line: #1e3a6f; --phosphor: #b9d67f;
     --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   }
   @media (prefers-color-scheme: dark) {
     :root {
       --bg: #0c1530; --card: #132550; --text: #e6ebf5; --muted: #8ba89a; --line: #1e3a6f;
       --up: #85a947; --down: #ef6464; --warn: #e0a72e; --accent: #4e6dd6; --bar: #1e3a6f;
-      --on-accent: #fff; --on-pill: #0c1530;
+      --on-pill: #0c1530;
+      --screen: #070e22;
     }
   }
   * { box-sizing: border-box; }
@@ -28,55 +31,62 @@
   .title { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
   .muted { color: var(--muted); }
   .spacer { flex: 1; }
-  section { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 10px 14px; min-width: 0; }
-  h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin: 0 0 6px; font-weight: 600; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-  h2 .count { text-transform: none; letter-spacing: 0; font-weight: 400; }
+  section { background: var(--card); border: 1px solid var(--line); border-radius: 8px; min-width: 0; }
+  h2 { font-size: 13px; font-weight: 600; margin: 0 0 8px; }
   code { font-family: var(--mono); font-size: 12px; }
   .pill { display: inline-block; padding: 0 7px; border-radius: 999px; font-size: 11px; font-weight: 600; line-height: 18px; color: var(--on-pill); white-space: nowrap; }
   .pill.up { background: var(--up); } .pill.down { background: var(--down); } .pill.warn { background: var(--warn); }
   .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; flex: none; background: var(--up); }
   .dot.down { background: var(--down); } .dot.warn { background: var(--warn); } .dot.off { background: var(--muted); }
-  button { font: inherit; font-size: 13px; border: 1px solid var(--line); background: var(--bg); color: var(--text); border-radius: 6px; padding: 3px 10px; cursor: pointer; white-space: nowrap; }
+  button { font: inherit; font-size: 12px; border: 1px solid var(--line); background: var(--bg); color: var(--text); border-radius: 6px; padding: 2px 9px; cursor: pointer; white-space: nowrap; }
   button:hover:not(:disabled) { border-color: var(--accent); }
   button:disabled { opacity: .5; cursor: default; }
-  button.on { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
-  select { font: inherit; font-size: 13px; background: var(--bg); color: var(--text); border: 1px solid var(--line); border-radius: 6px; padding: 2px 4px; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
   /* System: one strip of stats */
-  .stats { display: flex; flex-wrap: wrap; padding: 0; }
+  .stats { display: flex; flex-wrap: wrap; }
   .stat { padding: 8px 14px; border-right: 1px solid var(--line); min-width: 0; }
   .stat:last-child { border-right: 0; }
   .stat.grow { flex: 1; min-width: 140px; }
-  .stat .k { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+  .stat .k { display: block; font-size: 12px; color: var(--muted); }
   .stat .v { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
   .bar { height: 4px; background: var(--bar); border-radius: 2px; margin-top: 4px; overflow: hidden; }
   .bar > div { height: 100%; background: var(--accent); }
 
-  /* Projects: one row each; clicking a row opens its log */
-  .prow { display: grid; grid-template-columns: 150px 120px minmax(0, 1fr) auto; gap: 4px 14px; align-items: center; padding: 7px 8px; margin: 0 -8px; border-radius: 6px; cursor: pointer; }
-  .prow + .prow { border-top: 1px solid var(--line); border-top-left-radius: 0; border-top-right-radius: 0; }
+  /* Console: project list on the left, Karen's screen on the right. The selected row takes the
+     screen's color and runs flush into it, so it reads as the tab the screen is showing. */
+  .console { display: grid; grid-template-columns: minmax(280px, 400px) minmax(0, 1fr); overflow: hidden; }
+  .list { padding: 8px 0 8px 8px; display: flex; flex-direction: column; gap: 2px; }
+  .prow { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 12px; align-items: center; padding: 9px 14px 9px 12px; border-radius: 8px 0 0 8px; cursor: pointer; }
   .prow:hover { background: var(--bg); }
-  .prow.sel { box-shadow: inset 3px 0 0 var(--accent); }
+  .prow.sel { background: var(--screen); color: var(--screen-text); }
+  .prow.sel .muted { color: var(--screen-muted); }
+  .prow.sel button { background: transparent; color: var(--screen-text); border-color: var(--screen-line); }
   .pname { display: flex; align-items: center; gap: 8px; font-weight: 600; min-width: 0; }
   .pname span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .pstate { font-size: 13px; }
+  .pstate { font-size: 13px; text-align: right; white-space: nowrap; }
   .pcommit { min-width: 0; font-size: 13px; }
   .pcommit > div { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .pcommit .pill { margin-left: 4px; }
-  @media (max-width: 640px) {
-    .prow { display: flex; flex-wrap: wrap; }
-    .pname { flex: 1; }
-    .pstate { order: 1; flex-basis: 100%; }
-    .pcommit { order: 2; flex-basis: 100%; }
+  .pcommit .pills { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 3px; }
+  .prow button { justify-self: end; }
+  .prow.updater .pname { font-weight: 400; }
+  .screen { background: var(--screen); color: var(--screen-muted); display: flex; flex-direction: column; min-width: 0; }
+  .screen-head { display: flex; align-items: center; gap: 8px; padding: 10px 14px 0; font: 12px var(--mono); }
+  .screen select { font: 12px var(--mono); background: transparent; color: var(--screen-muted); border: 1px solid var(--screen-line); border-radius: 6px; padding: 1px 4px; }
+  .screen select option { background: var(--screen); }
+  pre { flex: 1 1 auto; margin: 0; padding: 10px 14px 14px; font: 12px/1.55 var(--mono); color: var(--phosphor); height: max(360px, 55vh); overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; scrollbar-color: var(--screen-line) transparent; }
+  @media (max-width: 760px) {
+    .console { grid-template-columns: 1fr; }
+    .list { padding: 8px; }
+    .prow { border-radius: 8px; }
     .pcommit > div { white-space: normal; }
   }
 
   /* Services: chips, failed ones first */
+  .services { padding: 10px 14px 12px; }
   .chips { display: flex; flex-wrap: wrap; gap: 6px; }
   .chip { display: inline-flex; align-items: center; gap: 6px; font: 12px var(--mono); padding: 2px 8px; border: 1px solid var(--line); border-radius: 999px; background: var(--bg); }
   .chip.failed { border-color: var(--down); color: var(--down); }
-
-  pre { margin: 0; font: 12px/1.5 var(--mono); background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 10px; height: max(320px, 55vh); overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; }
 </style>
 </head>
 <body>
@@ -87,33 +97,29 @@
       <h1>Karen</h1>
       <span class="muted"><span id="host"></span> <span id="updated">loading…</span></span>
     </div>
-    <span class="spacer"></span>
-    <span class="muted" id="updateMsg"></span>
-    <button id="update">Update all now</button>
   </header>
   <section class="stats" id="sys"></section>
-  <section>
-    <h2>Projects</h2>
-    <div id="projects"></div>
+  <section class="console">
+    <div class="list" id="projects"></div>
+    <div class="screen">
+      <div class="screen-head">
+        <span id="logTitle"></span>
+        <span class="spacer"></span>
+        <select id="lines" aria-label="Log lines"><option value="50">50 lines</option><option value="100" selected>100 lines</option><option value="250">250 lines</option><option value="500">500 lines</option></select>
+      </div>
+      <pre id="log"></pre>
+    </div>
   </section>
-  <section>
-    <h2>Services <span class="count" id="svcCount"></span></h2>
+  <section class="services">
+    <h2 id="svcCount">Services</h2>
     <div class="chips" id="svc"></div>
-  </section>
-  <section>
-    <h2>
-      Logs
-      <span class="spacer"></span>
-      <span id="logTabs" style="display: contents"></span>
-      <select id="lines"><option>50</option><option selected>100</option><option>250</option><option>500</option></select>
-    </h2>
-    <pre id="log"></pre>
   </section>
 </div>
 <script>
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 const gb = (b) => (b / 1024 ** 3).toFixed(1);
+const UPDATER = 'karen-update';
 
 function ago(ms) {
   if (!ms) return 'never';
@@ -131,72 +137,77 @@ const pill = (cls, text) => `<span class="pill ${cls}">${esc(text)}</span>`;
 const dot = (cls) => `<span class="dot ${cls}"></span>`;
 const stat = (k, v, cls = '') => `<div class="stat ${cls}"><span class="k">${esc(k)}</span><span class="v">${v}</span></div>`;
 const meter = (k, used, total) =>
-  `<div class="stat grow"><span class="k">${k}</span><span class="v">${gb(used)} / ${gb(total)} GB</span>` +
+  `<div class="stat grow"><span class="k">${k}</span><span class="v">${gb(used)} of ${gb(total)} GB</span>` +
   `<div class="bar"><div style="width:${(used / total * 100).toFixed(1)}%"></div></div></div>`;
 const commit = (c) => `<code>${esc(c.hash.slice(0, 7))}</code> ${esc(c.subject)} <span class="muted">${ago(Date.parse(c.date))}</span>`;
 
-function renderSys(s, au) {
-  $('host').textContent = `on ${s.hostname} ·`;
-  document.title = `Karen · ${s.hostname}`;
-  const auto = !au.installed ? `${dot('off')} not installed`
-    : au.running ? `${dot('warn')} updating now`
-    : au.lastResult && au.lastResult !== 'success' ? `${dot('down')} failed ${ago(au.lastRun)}`
-    : `${dot(au.active === 'active' ? '' : 'off')} ${au.active === 'active' ? ago(au.lastRun) : esc(au.active)}`;
+function renderSys(s) {
+  $('host').textContent = `on ${s.hostname},`;
+  document.title = `Karen on ${s.hostname}`;
   const temp = s.tempC == null ? '' : stat('CPU temp',
     `${dot(s.tempC >= 80 ? 'down' : s.tempC >= 70 ? 'warn' : '')} ${s.tempC.toFixed(0)} °C`);
   $('sys').innerHTML =
-    stat('Auto-update', auto) +
     stat('Uptime', dur(s.uptime)) +
-    stat('Load', `${s.load[0].toFixed(2)} <span class="muted">/ ${s.cpus} cores</span>`) +
+    stat('Load', `${s.load[0].toFixed(2)} <span class="muted">on ${s.cpus} cores</span>`) +
     meter('Memory', s.mem.total - s.mem.available, s.mem.total) +
     meter('Disk', s.disk.total - s.disk.available, s.disk.total) +
     temp;
 }
 
-// Rows are created once per project and only their details are re-rendered, so button state survives refreshes
-function renderProjects(list, updating) {
+// Rows are created once and only their details are re-rendered, so button state survives refreshes
+function ensureRow(id, unit, button) {
+  let row = document.getElementById(id);
+  if (row) return row;
+  row = document.createElement('div');
+  row.className = 'prow';
+  row.id = id;
+  row.dataset.unit = unit;
+  row.tabIndex = 0;
+  row.innerHTML = `<div class="pname"></div><div class="pstate"></div><div class="pcommit"></div>${button}`;
+  // Projects keep their order above the updater row, which is always last
+  $('projects').insertBefore(row, unit === UPDATER ? null : document.getElementById('row-updater'));
+  return row;
+}
+
+function renderProjects(list, au) {
   for (const p of list) {
-    let row = document.getElementById(`p-${p.service}`);
-    if (!row) {
-      row = document.createElement('div');
-      row.className = 'prow';
-      row.id = `p-${p.service}`;
-      row.dataset.unit = p.service;
-      row.innerHTML = `<div class="pname"></div><div class="pstate"></div><div class="pcommit"></div>` +
-        `<button data-restart="${esc(p.service)}" data-name="${esc(p.name)}">Restart</button>`;
-      $('projects').appendChild(row);
-    }
+    const row = ensureRow(`p-${p.service}`, p.service,
+      `<button data-restart="${esc(p.service)}" data-name="${esc(p.name)}">Restart</button>`);
     const [cls, text] = !p.installed ? ['down', 'not installed']
       : p.active === 'active' ? ['', `up ${dur((Date.now() - p.since) / 1000)}`]
       : p.active === 'activating' || p.active === 'reloading' ? ['warn', p.active]
       : ['down', p.sub || p.active];
     row.querySelector('.pname').innerHTML = `${dot(cls)}<span>${esc(p.name)}</span>`;
-    row.querySelector('.pstate').innerHTML = `${esc(text)}` +
-      (p.restarts ? ` <span class="muted" title="automatic restarts after crashing">· ${p.restarts}×</span>` : '');
+    row.querySelector('.pstate').innerHTML = esc(text) +
+      (p.restarts ? ` <span class="muted" title="automatic restarts after crashing">, ${p.restarts} crashes</span>` : '');
     const behind = p.github && p.commit && p.commit.hash !== p.github.hash;
-    const broken = !updating && p.deployed && p.commit && p.deployed !== p.commit.hash;
-    row.querySelector('.pcommit').innerHTML = !p.commit ? '<span class="muted">no git checkout</span>'
-      : `<div>${commit(p.commit)}${behind ? pill('warn', 'update pending') : ''}${broken ? pill('down', 'update failed') : ''}</div>` +
-        (behind ? `<div class="muted">GitHub: ${commit(p.github)}</div>` : '');
+    const broken = !au.running && p.deployed && p.commit && p.deployed !== p.commit.hash;
+    row.querySelector('.pcommit').innerHTML = !p.commit ? '<span class="muted">no git checkout found</span>'
+      : `<div>${commit(p.commit)}</div>` +
+        (behind ? `<div class="muted">GitHub has ${commit(p.github)}</div>` : '') +
+        (behind || broken ? `<div class="pills">${behind ? pill('warn', 'update pending') : ''}${broken ? pill('down', 'update failed') : ''}</div>` : '');
   }
+
+  const row = ensureRow('row-updater', UPDATER, '<button data-run>Run now</button>');
+  row.classList.add('updater');
+  const [cls, text] = !au.installed ? ['off', 'not installed']
+    : au.running ? ['warn', 'running']
+    : au.lastResult && au.lastResult !== 'success' ? ['down', `failed ${ago(au.lastRun)}`]
+    : [au.active === 'active' ? '' : 'off', au.active === 'active' ? `ran ${ago(au.lastRun)}` : au.active];
+  row.querySelector('.pname').innerHTML = `${dot(cls)}<span>Auto-updater</span>`;
+  row.querySelector('.pstate').textContent = text;
+  row.querySelector('.pcommit').innerHTML = '<span class="muted">Deploys new GitHub commits every minute</span>';
   markSelected();
 }
 
 function renderServices(list) {
   list.sort((a, b) => (b.active === 'failed') - (a.active === 'failed') || a.unit.localeCompare(b.unit, undefined, { sensitivity: 'base' }));
   const failed = list.filter((s) => s.active === 'failed').length;
-  $('svcCount').textContent = `· ${list.length - failed} running` + (failed ? ` · ${failed} failed` : '');
+  $('svcCount').textContent = `${list.length - failed} services running` + (failed ? `, ${failed} failed` : '');
   $('svc').innerHTML = list.map((s) => {
     const f = s.active === 'failed';
     return `<span class="chip ${f ? 'failed' : ''}" title="${esc(s.description)}">${dot(f ? 'down' : '')}${esc(s.unit)}</span>`;
   }).join('');
-}
-
-function renderLogTabs(list) {
-  if ($('logTabs').children.length) return;
-  const tabs = [...list.map((p) => [p.service, p.name]), ['karen-update', 'Updates']];
-  $('logTabs').innerHTML = tabs.map(([u, name]) => `<button data-unit="${esc(u)}">${esc(name)}</button>`).join('');
-  markSelected();
 }
 
 let lastAt = 0;
@@ -204,10 +215,9 @@ async function refresh() {
   try {
     const r = await fetch('/api/status');
     const d = await r.json();
-    if (!unit) unit = d.projects[0]?.service || 'karen-update';
-    renderSys(d.system, d.updater);
-    renderProjects(d.projects, d.updater.running);
-    renderLogTabs(d.projects);
+    if (!unit) unit = d.projects[0]?.service || UPDATER;
+    renderSys(d.system);
+    renderProjects(d.projects, d.updater);
     renderServices(d.services);
     lastAt = d.at;
   } catch (e) {
@@ -218,8 +228,8 @@ setInterval(() => { if (lastAt) $('updated').textContent = `updated ${ago(lastAt
 
 let unit = null;
 function markSelected() {
-  $('logTabs').querySelectorAll('[data-unit]').forEach((x) => x.classList.toggle('on', x.dataset.unit === unit));
   $('projects').querySelectorAll('.prow').forEach((x) => x.classList.toggle('sel', x.dataset.unit === unit));
+  $('logTitle').textContent = unit ? `journalctl -u ${unit}` : '';
 }
 async function refreshLog() {
   if (!unit) return;
@@ -237,13 +247,9 @@ function showLog(u) {
   markSelected();
   refreshLog().then(() => { $('log').scrollTop = $('log').scrollHeight; });
 }
-$('logTabs').addEventListener('click', (e) => {
-  const b = e.target.closest('[data-unit]');
-  if (b) showLog(b.dataset.unit);
-});
 $('lines').addEventListener('change', refreshLog);
 
-async function act(url, label, confirmText, btn, msg) {
+async function act(url, label, confirmText, btn) {
   if (!confirm(confirmText)) return;
   const original = btn.textContent;
   btn.disabled = true;
@@ -251,10 +257,9 @@ async function act(url, label, confirmText, btn, msg) {
   try {
     const r = await fetch(url, { method: 'POST', headers: { 'X-Dashboard': '1' } });
     const d = await r.json();
-    if (msg) msg.textContent = d.ok ? '' : `${label} failed: ${d.error}`;
-    else if (!d.ok) alert(`${label} failed: ${d.error}`);
+    if (!d.ok) alert(`${label} failed: ${d.error}`);
   } catch (e) {
-    // Restarting the dashboard itself drops the connection before it can answer; the next refresh reconnects
+    // Restarting Karen itself drops the connection before it can answer; the next refresh reconnects
   }
   btn.disabled = false;
   btn.textContent = original;
@@ -262,13 +267,19 @@ async function act(url, label, confirmText, btn, msg) {
   refreshLog();
 }
 $('projects').addEventListener('click', (e) => {
-  const b = e.target.closest('[data-restart]');
-  if (b) return act(`/api/restart?service=${encodeURIComponent(b.dataset.restart)}`, 'Restarting', `Restart ${b.dataset.name}?`, b);
+  const restart = e.target.closest('[data-restart]');
+  if (restart) return act(`/api/restart?service=${encodeURIComponent(restart.dataset.restart)}`, 'Restarting', `Restart ${restart.dataset.name}?`, restart);
+  const run = e.target.closest('[data-run]');
+  if (run) return act('/api/update', 'Running', 'Check GitHub and deploy new commits for every project now?', run);
   const row = e.target.closest('.prow');
   if (row) showLog(row.dataset.unit);
 });
-$('update').addEventListener('click', () =>
-  act('/api/update', 'Updating', 'Check GitHub and deploy new commits for every project now?', $('update'), $('updateMsg')));
+$('projects').addEventListener('keydown', (e) => {
+  if ((e.key === 'Enter' || e.key === ' ') && e.target.classList.contains('prow')) {
+    e.preventDefault();
+    showLog(e.target.dataset.unit);
+  }
+});
 
 refresh().then(() => refreshLog()).then(() => { $('log').scrollTop = $('log').scrollHeight; });
 setInterval(refresh, 10_000);
