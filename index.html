@@ -148,7 +148,6 @@ const commit = (c) => `<code>${esc(c.hash.slice(0, 7))}</code> ${esc(c.subject)}
 
 function renderSys(s) {
   $('host').textContent = `on ${s.hostname},`;
-  document.title = `Karen on ${s.hostname}`;
   const temp = s.tempC == null ? '' : stat('CPU temp',
     `${dot(s.tempC >= 80 ? 'down' : s.tempC >= 70 ? 'warn' : '')} ${s.tempC.toFixed(0)} °C`);
   $('sys').innerHTML =
