@@ -1,0 +1,4 @@
+[
+  { "name": "Hearthbeat", "dir": "~/hearthbeat", "service": "hearthbeat" },
+  { "name": "Karen", "dir": ".", "service": "karen" }
+]

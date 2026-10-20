@@ -1,4 +1,4 @@
-// Small web dashboard for the Pi: system stats, running services, hearthbeat deploy state and logs.
+// Small web dashboard for the Pi: system stats, running services, and each project's deploy state and logs.
 // Run with: node server.js  (or bash install.sh to install as a service)
 import http from 'node:http';
 import os from 'node:os';
@@ -6,14 +6,13 @@ import path from 'node:path';
 import { execFile } from 'node:child_process';
 import { readFile, statfs } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
+import { loadProjects } from './projects.js';
 
-const PORT = Number(process.env.DASHBOARD_PORT || 8080);
+const PORT = Number(process.env.KAREN_PORT || 8080);
 const HERE = path.dirname(fileURLToPath(import.meta.url));
-// The hearthbeat checkout, for its deployed commit
-const APP_DIR = path.resolve(process.env.HEARTHBEAT_DIR || path.join(os.homedir(), 'hearthbeat'));
 // Must match the paths in the sudoers rule written by install.sh
 const SYSTEMCTL = '/usr/bin/systemctl';
-const LOG_UNITS = ['hearthbeat', 'hearthbeat-update'];
+const UPDATER = 'karen-update';
 
 // Commands run through execFile with fixed arguments, never a shell
 function run(cmd, args, cwd) {
@@ -61,41 +60,55 @@ async function services() {
     });
 }
 
-async function hearthbeat() {
-  const units = ['hearthbeat.service', 'hearthbeat-update.service', 'hearthbeat-update.timer'];
+// systemctl show for several units at once, keyed by unit name
+async function unitProps(units) {
   const { out } = await run(SYSTEMCTL, [
     'show', ...units,
     '-p', 'Id,LoadState,ActiveState,SubState,Result,NRestarts,ActiveEnterTimestampMonotonic,ExecMainExitTimestampMonotonic',
   ]);
-  const props = Object.fromEntries(
+  return Object.fromEntries(
     out.split('\n\n').map((block) => {
       const p = Object.fromEntries(block.split('\n').map((l) => [l.slice(0, l.indexOf('=')), l.slice(l.indexOf('=') + 1)]));
       return [p.Id, p];
     })
   );
-  const bot = props['hearthbeat.service'] || {};
-  const upd = props['hearthbeat-update.service'] || {};
-  const timer = props['hearthbeat-update.timer'] || {};
+}
 
-  const head = await run('git', ['log', '-1', '--format=%H%x09%s%x09%cI'], APP_DIR);
-  const [hash, subject, date] = head.out.split('\t');
-  const remote = await run('git', ['log', '-1', '--format=%H%x09%s%x09%cI', 'origin/main'], APP_DIR);
-  const [rHash, rSubject, rDate] = remote.out.split('\t');
-  const deployed = (await readFile(path.join(APP_DIR, '.git/hearthbeat-deployed'), 'utf8').catch(() => '')).trim();
+async function commitInfo(dir, ref) {
+  const { out } = await run('git', ['log', '-1', '--format=%H%x09%s%x09%cI', ref], dir);
+  const [hash, subject, date] = out.split('\t');
+  return hash ? { hash, subject, date } : null;
+}
 
+async function projects(list) {
+  const props = await unitProps([...list.map((p) => `${p.service}.service`), `${UPDATER}.service`, `${UPDATER}.timer`]);
+  const upd = props[`${UPDATER}.service`] || {};
+  const timer = props[`${UPDATER}.timer`] || {};
   return {
-    bot: {
-      installed: bot.LoadState === 'loaded',
-      active: bot.ActiveState,
-      sub: bot.SubState,
-      since: fromMono(bot.ActiveEnterTimestampMonotonic),
-      restarts: Number(bot.NRestarts || 0),
-    },
-    commit: hash ? { hash, subject, date } : null,
-    github: rHash ? { hash: rHash, subject: rSubject, date: rDate } : null,
-    // The updater writes this after a successful deploy; if it lags HEAD the last update didn't finish
-    deployed: deployed || null,
-    autoUpdate: {
+    projects: await Promise.all(
+      list.map(async (p) => {
+        const u = props[`${p.service}.service`] || {};
+        const [commit, github, deployed] = await Promise.all([
+          commitInfo(p.dir, 'HEAD'),
+          commitInfo(p.dir, 'origin/main'),
+          readFile(path.join(p.dir, '.git/karen-deployed'), 'utf8').then((s) => s.trim(), () => null),
+        ]);
+        return {
+          name: p.name,
+          service: p.service,
+          installed: u.LoadState === 'loaded',
+          active: u.ActiveState,
+          sub: u.SubState,
+          since: fromMono(u.ActiveEnterTimestampMonotonic),
+          restarts: Number(u.NRestarts || 0),
+          commit,
+          github,
+          // update.js writes this after a successful deploy; if it lags HEAD the last update didn't finish
+          deployed,
+        };
+      })
+    ),
+    updater: {
       installed: timer.LoadState === 'loaded',
       active: timer.ActiveState,
       running: upd.ActiveState === 'activating',
@@ -109,11 +122,6 @@ async function logs(unit, lines) {
   const { ok, out, err } = await run('journalctl', ['-u', unit, '-n', String(lines), '--no-pager', '-o', 'short-iso']);
   return { ok, lines: (ok ? out : err).split('\n') };
 }
-
-const actions = {
-  restart: () => run('sudo', ['-n', SYSTEMCTL, 'restart', 'hearthbeat']),
-  update: () => run('sudo', ['-n', SYSTEMCTL, '--no-block', 'start', 'hearthbeat-update.service']),
-};
 
 function send(res, status, body, type = 'application/json') {
   res.writeHead(status, { 'Content-Type': type, 'Cache-Control': 'no-store' });
@@ -130,23 +138,32 @@ const server = http.createServer(async (req, res) => {
     if (req.method === 'GET' && url.pathname === '/icon.png') {
       return send(res, 200, await readFile(path.join(HERE, 'icon.png')), 'image/png');
     }
+    const list = await loadProjects();
+    const serviceNames = list.map((p) => p.service);
     if (req.method === 'GET' && url.pathname === '/api/status') {
-      const [sys, svc, su] = await Promise.all([system(), services(), hearthbeat()]);
-      return send(res, 200, { system: sys, services: svc, hearthbeat: su, at: Date.now() });
+      const [sys, svc, pr] = await Promise.all([system(), services(), projects(list)]);
+      return send(res, 200, { system: sys, services: svc, ...pr, at: Date.now() });
     }
     if (req.method === 'GET' && url.pathname === '/api/logs') {
       const unit = url.searchParams.get('unit');
-      if (!LOG_UNITS.includes(unit)) return send(res, 400, { error: 'unknown unit' });
+      if (![...serviceNames, UPDATER].includes(unit)) return send(res, 400, { error: 'unknown unit' });
       const lines = Math.min(500, Math.max(10, Number(url.searchParams.get('lines')) || 100));
       return send(res, 200, await logs(unit, lines));
     }
-    const action = req.method === 'POST' && url.pathname.match(/^\/api\/(\w+)$/)?.[1];
-    if (action && actions[action]) {
+    if (req.method === 'POST' && (url.pathname === '/api/restart' || url.pathname === '/api/update')) {
       // A custom header can't be sent cross-site without a CORS preflight, which this server never answers,
       // so other websites open in your browser can't press these buttons
       if (req.headers['x-dashboard'] !== '1') return send(res, 403, { error: 'missing X-Dashboard header' });
-      const r = await actions[action]();
-      console.log(`${new Date().toISOString()} ${action}: ${r.ok ? 'ok' : r.err}`);
+      let args;
+      if (url.pathname === '/api/update') {
+        args = ['--no-block', 'start', `${UPDATER}.service`];
+      } else {
+        const service = url.searchParams.get('service');
+        if (!serviceNames.includes(service)) return send(res, 400, { error: 'unknown service' });
+        args = ['restart', service];
+      }
+      const r = await run('sudo', ['-n', SYSTEMCTL, ...args]);
+      console.log(`${new Date().toISOString()} ${args.join(' ')}: ${r.ok ? 'ok' : r.err}`);
       return send(res, r.ok ? 200 : 500, { ok: r.ok, error: r.ok ? null : r.err });
     }
     send(res, 404, { error: 'not found' });
