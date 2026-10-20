@@ -127,6 +127,9 @@ const server = http.createServer(async (req, res) => {
     if (req.method === 'GET' && url.pathname === '/') {
       return send(res, 200, await readFile(path.join(HERE, 'index.html')), 'text/html; charset=utf-8');
     }
+    if (req.method === 'GET' && url.pathname === '/icon.svg') {
+      return send(res, 200, await readFile(path.join(HERE, 'icon.svg')), 'image/svg+xml');
+    }
     if (req.method === 'GET' && url.pathname === '/api/status') {
       const [sys, svc, su] = await Promise.all([system(), services(), serversUp()]);
       return send(res, 200, { system: sys, services: svc, serversUp: su, at: Date.now() });
