@@ -52,8 +52,8 @@
 <body>
 <header>
   <img src="/icon.png" alt="" height="36">
-  <h1 id="host">Pi</h1>
-  <span class="muted" id="updated">loading…</span>
+  <h1>Karen</h1>
+  <span class="muted"><span id="host"></span> <span id="updated">loading…</span></span>
 </header>
 <main>
   <div id="projects" style="display: contents"></div>
@@ -137,7 +137,7 @@ function renderLogTabs(list) {
 }
 
 function renderSys(s, au) {
-  $('host').textContent = s.hostname;
+  $('host').textContent = `on ${s.hostname} ·`;
   document.title = `Karen · ${s.hostname}`;
   const auText = !au.installed ? '<span class="muted">not installed</span>'
     : au.running ? pill('warn', 'updating now')
