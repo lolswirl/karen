@@ -15,6 +15,7 @@
     --screen: #0b1633; --screen-text: #e3e9f6; --screen-muted: #8ba89a; --screen-line: #1e3a6f; --phosphor: #b9d67f;
     --log-dim: #6f8a7d; --log-err: #ff7b7b; --log-warn: #e8b64a; --log-sha: #8fa6ff;
     --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    --radius: 4px;
   }
   @media (prefers-color-scheme: dark) {
     :root {
@@ -32,14 +33,14 @@
   .title { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
   .muted { color: var(--muted); }
   .spacer { flex: 1; }
-  section { background: var(--card); border: 1px solid var(--line); border-radius: 8px; min-width: 0; }
+  section { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); min-width: 0; }
   h2 { font-size: 13px; font-weight: 600; margin: 0 0 8px; }
   code { font-family: var(--mono); font-size: 12px; }
   .pill { display: inline-block; padding: 0 7px; border-radius: 999px; font-size: 11px; font-weight: 600; line-height: 18px; color: var(--on-pill); white-space: nowrap; }
   .pill.up { background: var(--up); } .pill.down { background: var(--down); } .pill.warn { background: var(--warn); }
   .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; flex: none; background: var(--up); }
   .dot.down { background: var(--down); } .dot.warn { background: var(--warn); } .dot.off { background: var(--muted); }
-  button { font: inherit; font-size: 12px; border: 1px solid var(--line); background: var(--bg); color: var(--text); border-radius: 6px; padding: 2px 9px; cursor: pointer; white-space: nowrap; }
+  button { font: inherit; font-size: 12px; border: 1px solid var(--line); background: var(--bg); color: var(--text); border-radius: var(--radius); padding: 2px 9px; cursor: pointer; white-space: nowrap; }
   button:hover:not(:disabled) { border-color: var(--accent); }
   button:disabled { opacity: .5; cursor: default; }
   :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
@@ -58,7 +59,7 @@
      screen's color and runs flush into it, so it reads as the tab the screen is showing. */
   .console { display: grid; grid-template-columns: minmax(280px, 400px) minmax(0, 1fr); overflow: hidden; }
   .list { padding: 8px 0 8px 8px; display: flex; flex-direction: column; gap: 2px; }
-  .prow { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 12px; align-items: center; padding: 9px 14px 9px 12px; border-radius: 8px 0 0 8px; cursor: pointer; }
+  .prow { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 12px; align-items: center; padding: 9px 14px 9px 12px; border-radius: var(--radius) 0 0 var(--radius); cursor: pointer; }
   .prow:hover { background: var(--bg); }
   .prow.sel { background: var(--screen); color: var(--screen-text); }
   .prow.sel .muted { color: var(--screen-muted); }
@@ -75,21 +76,21 @@
   .prow.updater .pname b { font-weight: 400; }
   .screen { background: var(--screen); color: var(--screen-muted); display: flex; flex-direction: column; min-width: 0; }
   .screen-head { display: flex; align-items: center; gap: 8px; padding: 10px 14px 0; font: 12px var(--mono); }
-  .screen select { font: 12px var(--mono); background: transparent; color: var(--screen-muted); border: 1px solid var(--screen-line); border-radius: 6px; padding: 1px 4px; }
+  .screen select { font: 12px var(--mono); background: transparent; color: var(--screen-muted); border: 1px solid var(--screen-line); border-radius: var(--radius); padding: 1px 4px; }
   .screen select option { background: var(--screen); }
   pre { flex: 1 1 auto; margin: 0; padding: 10px 14px 14px; font: 12px/1.55 var(--mono); color: var(--phosphor); height: max(360px, 55vh); overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; scrollbar-color: var(--screen-line) transparent; }
   pre .dim { color: var(--log-dim); } pre .err { color: var(--log-err); } pre .warn { color: var(--log-warn); } pre .sha { color: var(--log-sha); }
   @media (max-width: 760px) {
     .console { grid-template-columns: 1fr; }
     .list { padding: 8px; }
-    .prow { border-radius: 8px; }
+    .prow { border-radius: var(--radius); }
     .pcommit > div { white-space: normal; }
   }
 
   /* Services: chips, failed ones first */
   .services { padding: 10px 14px 12px; }
   .chips { display: flex; flex-wrap: wrap; gap: 6px; }
-  .chip { display: inline-flex; align-items: center; gap: 6px; font: 12px var(--mono); padding: 2px 8px; border: 1px solid var(--line); border-radius: 999px; background: var(--bg); }
+  .chip { display: inline-flex; align-items: center; gap: 6px; font: 12px var(--mono); padding: 2px 8px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--bg); }
   .chip.failed { border-color: var(--down); color: var(--down); }
 </style>
 </head>
