@@ -57,7 +57,7 @@
 </header>
 <main>
   <section>
-    <h2>servers-up</h2>
+    <h2>Hearthbeat</h2>
     <dl id="bot"></dl>
     <div class="actions">
       <button id="restart">Restart bot</button>
@@ -77,8 +77,8 @@
     <h2>
       Logs
       <span class="spacer"></span>
-      <button data-unit="servers-up" class="on">Bot</button>
-      <button data-unit="servers-up-update">Updates</button>
+      <button data-unit="hearthbeat" class="on">Bot</button>
+      <button data-unit="hearthbeat-update">Updates</button>
       <select id="lines"><option>50</option><option selected>100</option><option>250</option><option>500</option></select>
     </h2>
     <pre id="log"></pre>
@@ -156,7 +156,7 @@ async function refresh() {
     const r = await fetch('/api/status');
     const d = await r.json();
     renderSys(d.system);
-    renderBot(d.serversUp);
+    renderBot(d.hearthbeat);
     renderServices(d.services);
     lastAt = d.at;
   } catch (e) {
@@ -165,7 +165,7 @@ async function refresh() {
 }
 setInterval(() => { if (lastAt) $('updated').textContent = `updated ${ago(lastAt)}`; }, 1000);
 
-let unit = 'servers-up';
+let unit = 'hearthbeat';
 async function refreshLog() {
   const pre = $('log');
   const atBottom = pre.scrollTop + pre.clientHeight >= pre.scrollHeight - 20;
@@ -200,7 +200,7 @@ async function act(action, label, confirmText) {
   refresh();
   refreshLog();
 }
-$('restart').addEventListener('click', () => act('restart', 'Restart', 'Restart the servers-up bot?'));
+$('restart').addEventListener('click', () => act('restart', 'Restart', 'Restart the Hearthbeat bot?'));
 $('update').addEventListener('click', () => act('update', 'Update', 'Check GitHub and deploy any new commits now?'));
 
 refresh();

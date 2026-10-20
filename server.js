@@ -1,4 +1,4 @@
-// Small web dashboard for the Pi: system stats, running services, servers-up deploy state and logs.
+// Small web dashboard for the Pi: system stats, running services, hearthbeat deploy state and logs.
 // Run with: node server.js  (or bash install.sh to install as a service)
 import http from 'node:http';
 import os from 'node:os';
@@ -9,11 +9,11 @@ import { fileURLToPath } from 'node:url';
 
 const PORT = Number(process.env.DASHBOARD_PORT || 8080);
 const HERE = path.dirname(fileURLToPath(import.meta.url));
-// The servers-up checkout, for its deployed commit
-const APP_DIR = path.resolve(process.env.SERVERS_UP_DIR || path.join(os.homedir(), 'serversup'));
+// The hearthbeat checkout, for its deployed commit
+const APP_DIR = path.resolve(process.env.HEARTHBEAT_DIR || path.join(os.homedir(), 'hearthbeat'));
 // Must match the paths in the sudoers rule written by install.sh
 const SYSTEMCTL = '/usr/bin/systemctl';
-const LOG_UNITS = ['servers-up', 'servers-up-update'];
+const LOG_UNITS = ['hearthbeat', 'hearthbeat-update'];
 
 // Commands run through execFile with fixed arguments, never a shell
 function run(cmd, args, cwd) {
@@ -61,8 +61,8 @@ async function services() {
     });
 }
 
-async function serversUp() {
-  const units = ['servers-up.service', 'servers-up-update.service', 'servers-up-update.timer'];
+async function hearthbeat() {
+  const units = ['hearthbeat.service', 'hearthbeat-update.service', 'hearthbeat-update.timer'];
   const { out } = await run(SYSTEMCTL, [
     'show', ...units,
     '-p', 'Id,LoadState,ActiveState,SubState,Result,NRestarts,ActiveEnterTimestampMonotonic,ExecMainExitTimestampMonotonic',
@@ -73,15 +73,15 @@ async function serversUp() {
       return [p.Id, p];
     })
   );
-  const bot = props['servers-up.service'] || {};
-  const upd = props['servers-up-update.service'] || {};
-  const timer = props['servers-up-update.timer'] || {};
+  const bot = props['hearthbeat.service'] || {};
+  const upd = props['hearthbeat-update.service'] || {};
+  const timer = props['hearthbeat-update.timer'] || {};
 
   const head = await run('git', ['log', '-1', '--format=%H%x09%s%x09%cI'], APP_DIR);
   const [hash, subject, date] = head.out.split('\t');
   const remote = await run('git', ['log', '-1', '--format=%H%x09%s%x09%cI', 'origin/main'], APP_DIR);
   const [rHash, rSubject, rDate] = remote.out.split('\t');
-  const deployed = (await readFile(path.join(APP_DIR, '.git/servers-up-deployed'), 'utf8').catch(() => '')).trim();
+  const deployed = (await readFile(path.join(APP_DIR, '.git/hearthbeat-deployed'), 'utf8').catch(() => '')).trim();
 
   return {
     bot: {
@@ -111,8 +111,8 @@ async function logs(unit, lines) {
 }
 
 const actions = {
-  restart: () => run('sudo', ['-n', SYSTEMCTL, 'restart', 'servers-up']),
-  update: () => run('sudo', ['-n', SYSTEMCTL, '--no-block', 'start', 'servers-up-update.service']),
+  restart: () => run('sudo', ['-n', SYSTEMCTL, 'restart', 'hearthbeat']),
+  update: () => run('sudo', ['-n', SYSTEMCTL, '--no-block', 'start', 'hearthbeat-update.service']),
 };
 
 function send(res, status, body, type = 'application/json') {
@@ -131,8 +131,8 @@ const server = http.createServer(async (req, res) => {
       return send(res, 200, await readFile(path.join(HERE, 'icon.png')), 'image/png');
     }
     if (req.method === 'GET' && url.pathname === '/api/status') {
-      const [sys, svc, su] = await Promise.all([system(), services(), serversUp()]);
-      return send(res, 200, { system: sys, services: svc, serversUp: su, at: Date.now() });
+      const [sys, svc, su] = await Promise.all([system(), services(), hearthbeat()]);
+      return send(res, 200, { system: sys, services: svc, hearthbeat: su, at: Date.now() });
     }
     if (req.method === 'GET' && url.pathname === '/api/logs') {
       const unit = url.searchParams.get('unit');

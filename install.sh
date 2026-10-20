@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-# Installs pi-dashboard as a systemd service, plus a sudoers rule that lets it restart and update servers-up.
-# Run from the repo folder:  bash install.sh [path to servers-up checkout]
+# Installs pi-dashboard as a systemd service, plus a sudoers rule that lets it restart and update hearthbeat.
+# Run from the repo folder:  bash install.sh [path to hearthbeat checkout]
 set -euo pipefail
 
 APP_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 RUN_USER="${SUDO_USER:-$USER}"
 RUN_HOME="$(getent passwd "$RUN_USER" | cut -d: -f6)"
-SERVERS_UP_DIR="${1:-$RUN_HOME/serversup}"
+HEARTHBEAT_DIR="${1:-$RUN_HOME/hearthbeat}"
 PORT="${DASHBOARD_PORT:-8080}"
 NODE_BIN="$(command -v node || true)"
 SERVICE=/etc/systemd/system/pi-dashboard.service
@@ -23,23 +23,23 @@ if [[ ! -x "$SYSTEMCTL" ]]; then
   exit 1
 fi
 
-if [[ ! -d "$SERVERS_UP_DIR/.git" ]]; then
-  echo "No servers-up checkout at $SERVERS_UP_DIR. Pass its path: bash install.sh /path/to/serversup" >&2
+if [[ ! -d "$HEARTHBEAT_DIR/.git" ]]; then
+  echo "No hearthbeat checkout at $HEARTHBEAT_DIR. Pass its path: bash install.sh /path/to/hearthbeat" >&2
   exit 1
 fi
-SERVERS_UP_DIR="$(cd "$SERVERS_UP_DIR" && pwd)"
+HEARTHBEAT_DIR="$(cd "$HEARTHBEAT_DIR" && pwd)"
 
 # Only these two exact commands, so the dashboard can't be used to run anything else as root
 echo "Writing $SUDOERS"
 TMP="$(mktemp)"
 cat > "$TMP" <<EOF
-$RUN_USER ALL=(root) NOPASSWD: $SYSTEMCTL restart servers-up, $SYSTEMCTL --no-block start servers-up-update.service
+$RUN_USER ALL=(root) NOPASSWD: $SYSTEMCTL restart hearthbeat, $SYSTEMCTL --no-block start hearthbeat-update.service
 EOF
 sudo visudo -cf "$TMP" > /dev/null
 sudo install -m 0440 -o root -g root "$TMP" "$SUDOERS"
 rm -f "$TMP"
 
-echo "Writing $SERVICE (user: $RUN_USER, port: $PORT, servers-up: $SERVERS_UP_DIR)"
+echo "Writing $SERVICE (user: $RUN_USER, port: $PORT, hearthbeat: $HEARTHBEAT_DIR)"
 sudo tee "$SERVICE" > /dev/null <<EOF
 [Unit]
 Description=pi-dashboard (web dashboard for this Pi)
@@ -55,7 +55,7 @@ Restart=always
 RestartSec=10
 Environment=NODE_ENV=production
 Environment=DASHBOARD_PORT=$PORT
-Environment=SERVERS_UP_DIR=$SERVERS_UP_DIR
+Environment=HEARTHBEAT_DIR=$HEARTHBEAT_DIR
 
 [Install]
 WantedBy=multi-user.target

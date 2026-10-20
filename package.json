@@ -1,7 +1,7 @@
 {
   "name": "pi-dashboard",
   "version": "1.0.0",
-  "description": "Web dashboard for a Raspberry Pi: system stats, running services, and servers-up status and logs",
+  "description": "Web dashboard for a Raspberry Pi: system stats, running services, and Hearthbeat status and logs",
   "main": "server.js",
   "type": "module",
   "scripts": {
