@@ -2,6 +2,8 @@
 
 A dashboard and auto-updater for a Raspberry Pi. Karen runs on the Pi, serves a page to your home network, and deploys new GitHub commits for the projects you list in `projects.json`.
 
+![Karen showing system stats, the project list beside Hearthbeat's log, and running services](docs/screenshot.png)
+
 The page shows:
 
 - **System**: uptime, load, memory, disk and CPU temperature.
