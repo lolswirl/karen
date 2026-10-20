@@ -182,7 +182,7 @@ function renderProjects(list, au) {
     row.querySelector('.pname').innerHTML = `${dot(cls)}<span class="pn"><b>${esc(p.name)}</b>` +
       (p.commit ? `<code class="sha muted">${esc(p.commit.hash.slice(0, 7))}</code>` : '') + '</span>';
     row.querySelector('.pstate').innerHTML = esc(text) +
-      (p.restarts ? ` <span class="muted" title="automatic restarts after crashing">, ${p.restarts} crashes</span>` : '');
+      (p.restarts ? `<span class="muted" title="automatic restarts after crashing">, ${p.restarts} crashes</span>` : '');
     const behind = p.github && p.commit && p.commit.hash !== p.github.hash;
     const broken = !au.running && p.deployed && p.commit && p.deployed !== p.commit.hash;
     row.querySelector('.pcommit').innerHTML = !p.commit ? '<span class="muted">no git checkout found</span>'
