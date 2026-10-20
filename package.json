@@ -1,7 +1,7 @@
 {
   "name": "karen",
   "version": "1.0.0",
-  "description": "Web dashboard for a Raspberry Pi: system stats, running services, and Hearthbeat status and logs",
+  "description": "Web dashboard and auto-updater for a Raspberry Pi: system stats, services, and each project's status and logs",
   "main": "server.js",
   "type": "module",
   "scripts": {
