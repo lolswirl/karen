@@ -126,7 +126,7 @@ function renderBot(su) {
     (b.restarts ? row('Crashes', `${b.restarts} automatic restarts`) : '') +
     row('Running', commit(su.commit) + sync) +
     (su.github && su.commit?.hash !== su.github.hash ? row('GitHub', commit(su.github)) : '') +
-    (su.deployed && su.commit && su.deployed !== su.commit.hash ? row('Warning', pill('down', 'last update did not finish, check update logs')) : '') +
+    (!au.running && su.deployed && su.commit && su.deployed !== su.commit.hash ? row('Warning', pill('down', 'last update did not finish, check update logs')) : '') +
     row('Auto-update', auText);
 }
 
