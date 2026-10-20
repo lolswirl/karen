@@ -13,6 +13,7 @@
     --on-pill: #fff;
     /* Karen's screen stays dark in both themes, like the monitor it is */
     --screen: #0b1633; --screen-text: #e3e9f6; --screen-muted: #8ba89a; --screen-line: #1e3a6f; --phosphor: #b9d67f;
+    --log-dim: #6f8a7d; --log-err: #ff7b7b; --log-warn: #e8b64a; --log-sha: #8fa6ff;
     --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   }
   @media (prefers-color-scheme: dark) {
@@ -77,6 +78,7 @@
   .screen select { font: 12px var(--mono); background: transparent; color: var(--screen-muted); border: 1px solid var(--screen-line); border-radius: 6px; padding: 1px 4px; }
   .screen select option { background: var(--screen); }
   pre { flex: 1 1 auto; margin: 0; padding: 10px 14px 14px; font: 12px/1.55 var(--mono); color: var(--phosphor); height: max(360px, 55vh); overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; scrollbar-color: var(--screen-line) transparent; }
+  pre .dim { color: var(--log-dim); } pre .err { color: var(--log-err); } pre .warn { color: var(--log-warn); } pre .sha { color: var(--log-sha); }
   @media (max-width: 760px) {
     .console { grid-template-columns: 1fr; }
     .list { padding: 8px; }
@@ -241,9 +243,19 @@ async function refreshLog() {
   try {
     const r = await fetch(`/api/logs?unit=${unit}&lines=${$('lines').value}`);
     const d = await r.json();
-    pre.textContent = d.lines.join('\n');
+    pre.innerHTML = d.lines.map(highlight).join('\n');
     if (atBottom) pre.scrollTop = pre.scrollHeight;
   } catch {}
+}
+// Dims journalctl's "time host process[pid]:" prefix (and a leading ISO timestamp the app logged itself),
+// colors error and warning lines, and picks out short commit SHAs
+function highlight(line) {
+  const m = line.match(/^(\S+ \S+ [^:]+: )(\d{4}-\d\d-\d\dT[\d:.]+Z )?(.*)$/);
+  if (!m) return `<span class="dim">${esc(line)}</span>`;
+  const [, prefix, ts = '', msg] = m;
+  const cls = /\b(errors?|failed|fail|exception|denied)\b/i.test(msg) ? 'err' : /\bwarn(ing)?\b/i.test(msg) ? 'warn' : '';
+  const body = esc(msg).replace(/\b(?=[0-9a-f]*[a-f])(?=[0-9a-f]*\d)[0-9a-f]{7}\b/g, '<span class="sha">$&</span>');
+  return `<span class="dim">${esc(prefix + ts)}</span><span class="${cls}">${body}</span>`;
 }
 function showLog(u) {
   unit = u;
