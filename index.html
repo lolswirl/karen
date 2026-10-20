@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pi Dashboard</title>
+<style>
+  :root {
+    --bg: #f4f5f7; --card: #fff; --text: #1d2026; --muted: #69707d; --line: #e2e5ea;
+    --up: #1f9d55; --down: #d64545; --warn: #c98a00; --accent: #5865f2; --bar: #e7e9ee;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #111317; --card: #1a1d23; --text: #e6e8ec; --muted: #8b92a0; --line: #2a2e36;
+      --up: #3fbf75; --down: #ef6464; --warn: #e0a72e; --accent: #7c86ff; --bar: #2a2e36;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.45 system-ui, -apple-system, Segoe UI, sans-serif; }
+  header { display: flex; align-items: baseline; gap: 12px; padding: 20px 16px 8px; max-width: 1200px; margin: 0 auto; }
+  h1 { font-size: 20px; margin: 0; }
+  .muted { color: var(--muted); }
+  main { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); padding: 8px 16px 32px; max-width: 1200px; margin: 0 auto; }
+  section { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 16px; min-width: 0; }
+  section.wide { grid-column: 1 / -1; }
+  h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin: 0 0 12px; display: flex; align-items: center; gap: 8px; }
+  dl { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; margin: 0; }
+  dt { color: var(--muted); }
+  dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
+  .pill { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 12px; font-weight: 600; color: #fff; }
+  .pill.up { background: var(--up); } .pill.down { background: var(--down); } .pill.warn { background: var(--warn); }
+  .bar { height: 6px; background: var(--bar); border-radius: 3px; margin-top: 4px; overflow: hidden; }
+  .bar > div { height: 100%; background: var(--accent); }
+  code { font-family: var(--mono); font-size: 12px; }
+  .actions { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; align-items: center; }
+  button { font: inherit; border: 1px solid var(--line); background: var(--bg); color: var(--text); border-radius: 6px; padding: 5px 12px; cursor: pointer; }
+  button:hover:not(:disabled) { border-color: var(--accent); }
+  button:disabled { opacity: .5; cursor: default; }
+  button.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+  table { width: 100%; border-collapse: collapse; }
+  td { padding: 5px 8px 5px 0; border-top: 1px solid var(--line); vertical-align: top; }
+  td:first-child { white-space: nowrap; }
+  .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; background: var(--up); }
+  .dot.failed { background: var(--down); }
+  pre { margin: 0; font: 12px/1.5 var(--mono); background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 10px; height: 420px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .spacer { flex: 1; }
+  select { font: inherit; background: var(--bg); color: var(--text); border: 1px solid var(--line); border-radius: 6px; padding: 4px; }
+</style>
+</head>
+<body>
+<header>
+  <h1 id="host">Pi</h1>
+  <span class="muted" id="updated">loading…</span>
+</header>
+<main>
+  <section>
+    <h2>servers-up</h2>
+    <dl id="bot"></dl>
+    <div class="actions">
+      <button id="restart">Restart bot</button>
+      <button id="update">Update now</button>
+      <span class="muted" id="actionMsg"></span>
+    </div>
+  </section>
+  <section>
+    <h2>System</h2>
+    <dl id="sys"></dl>
+  </section>
+  <section class="wide">
+    <h2>Services <span class="muted" id="svcCount"></span></h2>
+    <table><tbody id="svc"></tbody></table>
+  </section>
+  <section class="wide">
+    <h2>
+      Logs
+      <span class="spacer"></span>
+      <button data-unit="servers-up" class="on">Bot</button>
+      <button data-unit="servers-up-update">Updates</button>
+      <select id="lines"><option>50</option><option selected>100</option><option>250</option><option>500</option></select>
+    </h2>
+    <pre id="log"></pre>
+  </section>
+</main>
+<script>
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+const gb = (b) => (b / 1024 ** 3).toFixed(1) + ' GB';
+
+function ago(ms) {
+  if (!ms) return 'never';
+  let s = Math.max(0, Math.round((Date.now() - ms) / 1000));
+  return dur(s) + ' ago';
+}
+function dur(s) {
+  const d = Math.floor(s / 86400), h = Math.floor(s % 86400 / 3600), m = Math.floor(s % 3600 / 60);
+  if (d) return `${d}d ${h}h`;
+  if (h) return `${h}h ${m}m`;
+  if (m) return `${m}m`;
+  return `${Math.floor(s)}s`;
+}
+const pill = (cls, text) => `<span class="pill ${cls}">${esc(text)}</span>`;
+const row = (k, v) => `<dt>${esc(k)}</dt><dd>${v}</dd>`;
+const meter = (used, total) =>
+  `${gb(used)} of ${gb(total)}<div class="bar"><div style="width:${(used / total * 100).toFixed(1)}%"></div></div>`;
+const commit = (c) => c ? `<code>${esc(c.hash.slice(0, 7))}</code> ${esc(c.subject)} <span class="muted">${ago(Date.parse(c.date))}</span>` : '<span class="muted">unknown</span>';
+
+function renderBot(su) {
+  const b = su.bot;
+  const state = !b.installed ? pill('down', 'not installed')
+    : b.active === 'active' ? pill('up', 'running')
+    : b.active === 'activating' || b.active === 'reloading' ? pill('warn', b.active)
+    : pill('down', b.sub || b.active);
+  const sync = !su.commit || !su.github ? ''
+    : su.commit.hash === su.github.hash ? ' ' + pill('up', 'up to date')
+    : ' ' + pill('warn', 'update pending');
+  const au = su.autoUpdate;
+  const auText = !au.installed ? '<span class="muted">not installed</span>'
+    : au.running ? pill('warn', 'updating now')
+    : `${au.active === 'active' ? 'on' : esc(au.active)} · last run ${ago(au.lastRun)}` +
+      (au.lastResult && au.lastResult !== 'success' ? ' ' + pill('down', au.lastResult) : '');
+  $('bot').innerHTML =
+    row('Status', state + (b.since && b.active === 'active' ? ` <span class="muted">for ${dur((Date.now() - b.since) / 1000)}</span>` : '')) +
+    (b.restarts ? row('Crashes', `${b.restarts} automatic restarts`) : '') +
+    row('Running', commit(su.commit) + sync) +
+    (su.github && su.commit?.hash !== su.github.hash ? row('GitHub', commit(su.github)) : '') +
+    (su.deployed && su.commit && su.deployed !== su.commit.hash ? row('Warning', pill('down', 'last update did not finish, check update logs')) : '') +
+    row('Auto-update', auText);
+}
+
+function renderSys(s) {
+  $('host').textContent = s.hostname;
+  document.title = `${s.hostname} dashboard`;
+  $('sys').innerHTML =
+    row('Uptime', dur(s.uptime)) +
+    row('Load', `${s.load.map((l) => l.toFixed(2)).join(' · ')} <span class="muted">(${s.cpus} cores)</span>`) +
+    row('Memory', meter(s.mem.total - s.mem.available, s.mem.total)) +
+    row('Disk', meter(s.disk.total - s.disk.available, s.disk.total)) +
+    (s.tempC != null ? row('CPU temp', `${s.tempC.toFixed(1)} °C ${s.tempC >= 80 ? pill('down', 'hot') : s.tempC >= 70 ? pill('warn', 'warm') : ''}`) : '');
+}
+
+function renderServices(list) {
+  list.sort((a, b) => (b.active === 'failed') - (a.active === 'failed') || a.unit.localeCompare(b.unit));
+  const failed = list.filter((s) => s.active === 'failed').length;
+  $('svcCount').textContent = `${list.length - failed} running` + (failed ? ` · ${failed} failed` : '');
+  $('svc').innerHTML = list.map((s) =>
+    `<tr><td><span class="dot ${s.active === 'failed' ? 'failed' : ''}"></span><code>${esc(s.unit)}</code></td><td class="muted">${esc(s.description)}</td></tr>`
+  ).join('');
+}
+
+let lastAt = 0;
+async function refresh() {
+  try {
+    const r = await fetch('/api/status');
+    const d = await r.json();
+    renderSys(d.system);
+    renderBot(d.serversUp);
+    renderServices(d.services);
+    lastAt = d.at;
+  } catch (e) {
+    $('updated').textContent = `can't reach the Pi (${e.message})`;
+  }
+}
+setInterval(() => { if (lastAt) $('updated').textContent = `updated ${ago(lastAt)}`; }, 1000);
+
+let unit = 'servers-up';
+async function refreshLog() {
+  const pre = $('log');
+  const atBottom = pre.scrollTop + pre.clientHeight >= pre.scrollHeight - 20;
+  try {
+    const r = await fetch(`/api/logs?unit=${unit}&lines=${$('lines').value}`);
+    const d = await r.json();
+    pre.textContent = d.lines.join('\n');
+    if (atBottom) pre.scrollTop = pre.scrollHeight;
+  } catch {}
+}
+document.querySelectorAll('[data-unit]').forEach((b) => b.addEventListener('click', () => {
+  unit = b.dataset.unit;
+  document.querySelectorAll('[data-unit]').forEach((x) => x.classList.toggle('on', x === b));
+  $('log').scrollTop = 1e9;
+  refreshLog().then(() => { $('log').scrollTop = $('log').scrollHeight; });
+}));
+$('lines').addEventListener('change', refreshLog);
+
+async function act(action, label, confirmText) {
+  if (!confirm(confirmText)) return;
+  const btns = [$('restart'), $('update')];
+  btns.forEach((b) => (b.disabled = true));
+  $('actionMsg').textContent = `${label}…`;
+  try {
+    const r = await fetch(`/api/${action}`, { method: 'POST', headers: { 'X-Dashboard': '1' } });
+    const d = await r.json();
+    $('actionMsg').textContent = d.ok ? `${label} done` : `${label} failed: ${d.error}`;
+  } catch (e) {
+    $('actionMsg').textContent = `${label} failed: ${e.message}`;
+  }
+  btns.forEach((b) => (b.disabled = false));
+  refresh();
+  refreshLog();
+}
+$('restart').addEventListener('click', () => act('restart', 'Restart', 'Restart the servers-up bot?'));
+$('update').addEventListener('click', () => act('update', 'Update', 'Check GitHub and deploy any new commits now?'));
+
+refresh();
+refreshLog().then(() => { $('log').scrollTop = $('log').scrollHeight; });
+setInterval(refresh, 10_000);
+setInterval(refreshLog, 10_000);
+</script>
+</body>
+</html>
